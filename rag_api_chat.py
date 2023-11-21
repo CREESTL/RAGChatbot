@@ -1,16 +1,16 @@
 """
 
-Q&A RAG Using API for Hugging Face models
+Q&A RAG Using API for Hugging Face models and storing chat history
 
 """
 
 import time
-from langchain.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import GPT4AllEmbeddings
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
 from langchain.vectorstores import Chroma
 from langchain.llms import HuggingFaceHub
-from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.document_loaders import PyPDFLoader
 from dotenv import find_dotenv, load_dotenv
@@ -63,32 +63,34 @@ rag_prompt = PromptTemplate.from_template(
     """
 )
 
+# Create memory for chat
+memory = ConversationBufferMemory(return_messages=True, memory_key="chat_history")
+
 # Create a chain based on LLM
-qa_chain = RetrievalQA.from_chain_type(
-    llm,
+conv_qa_chain = ConversationalRetrievalChain.from_llm(
+    llm=llm,
     retriever=vectorstore.as_retriever(),
-    chain_type_kwargs={"prompt": rag_prompt},
+    memory=memory,
+    combine_docs_chain_kwargs={"prompt": rag_prompt},
 )
 
 
 # WARNING: Using to many requests in a short period of type may lead to Server Error of HF
 questions = [
-    "What is the full name of Guy Ritchie?",
-    "What are the most popular films of Guy Ritchie?",
+    "When was Ritchie born?",
+    "What are his most popular films?",
     "What awards did Ritchie get?",
-    "When was Ritchie's film Sherlock Holmes created?",
+    "What is the first one?",
+    "When was his film Sherlock Holmes created?",
+    "Who was the main actor?",
     "How much kilograms are there in a ton?",
-    "How far can ducks fly?",
-    "What is 1+1?",
-    "What is the capital of Great Britain? Please tell me, I really need to know!",
 ]
-
 
 for question in questions:
     # Query the chain to get the answer
-    res = qa_chain({"query": question})
-    text_res = res["result"]
-    print(f"Question: {question}{text_res}")
+    res = conv_qa_chain({"question": question})
+    text_res = res["answer"]
+    print(f"Question: {question}\n{text_res}")
 
 
 # See how long it took the code to execute

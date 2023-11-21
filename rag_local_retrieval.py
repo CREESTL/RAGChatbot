@@ -1,24 +1,17 @@
 """
 
-Q&A RAG Using API for Hugging Face models
+Q&A RAG Using local model and RetrievalQA chain
 
 """
 
 import time
-from langchain.document_loaders import WebBaseLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import GPT4AllEmbeddings
 from langchain.vectorstores import Chroma
-from langchain.llms import HuggingFaceHub
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.llms import GPT4All
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.document_loaders import PyPDFLoader
-from dotenv import find_dotenv, load_dotenv
-import os
-
-
-load_dotenv(find_dotenv())
-HF_TOKEN = os.environ["HF_TOKEN"]
 
 start = time.time()
 
@@ -33,16 +26,10 @@ all_splits = text_splitter.split_documents(data)
 vectorstore = Chroma.from_documents(documents=all_splits, embedding=GPT4AllEmbeddings())
 
 # Create a LLM
-repo_id = "HuggingFaceH4/zephyr-7b-beta"
-
-# Optional repos
-# repo_id = "mistralai/Mistral-7B-v0.1"
-# repo_id = "tiiuae/falcon-7b-instruct"
-
-llm = HuggingFaceHub(
-    repo_id=repo_id,
-    huggingfacehub_api_token=HF_TOKEN,
-    model_kwargs={"temperature": 0.5, "max_length": 300},
+llm = GPT4All(
+    model="/home/creestl/programming/python/ai/nlp/rag_chatbot/mistral-7b-openorca.Q4_0.gguf",
+    max_tokens=2048,
+    temp=0.5,
 )
 
 # Specify a prompt for LLM to only use given context
@@ -63,6 +50,7 @@ rag_prompt = PromptTemplate.from_template(
     """
 )
 
+
 # Create a chain based on LLM
 qa_chain = RetrievalQA.from_chain_type(
     llm,
@@ -71,7 +59,6 @@ qa_chain = RetrievalQA.from_chain_type(
 )
 
 
-# WARNING: Using to many requests in a short period of type may lead to Server Error of HF
 questions = [
     "What is the full name of Guy Ritchie?",
     "What are the most popular films of Guy Ritchie?",
@@ -88,7 +75,7 @@ for question in questions:
     # Query the chain to get the answer
     res = qa_chain({"query": question})
     text_res = res["result"]
-    print(f"Question: {question}{text_res}")
+    print(f"Question: {question}\n{text_res}")
 
 
 # See how long it took the code to execute
