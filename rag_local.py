@@ -1,8 +1,8 @@
-'''
+"""
 
 Q&A RAG Using local model
 
-'''
+"""
 
 import time
 from langchain.document_loaders import WebBaseLoader
@@ -12,23 +12,23 @@ from langchain.vectorstores import Chroma
 from langchain.llms import GPT4All
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
+from langchain.document_loaders import PyPDFLoader
+from langchain.document_loaders import MathpixPDFLoader
 
 start = time.time()
 
-# Load contents of web-page
-loader = WebBaseLoader("https://en.wikipedia.org/wiki/Python_(programming_language)")
-data = loader.load()
+# Load contents of local file
+loader = PyPDFLoader("ritchie.pdf")
+pages = loader.load()
 
 # Embed words and store them in DB
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
-all_splits = text_splitter.split_documents(data)
-vectorstore = Chroma.from_documents(documents=all_splits, embedding=GPT4AllEmbeddings())
+vectorstore = Chroma.from_documents(documents=pages, embedding=GPT4AllEmbeddings())
 
 # Create a LLM
 llm = GPT4All(
     model="/home/creestl/programming/python/ai/nlp/rag_chatbot/mistral-7b-openorca.Q4_0.gguf",
-    max_tokens=2048,
-    temp=0.5
+    max_tokens=4056,
+    temp=0.5,
 )
 
 # Specify a prompt for LLM to only use given context
@@ -54,20 +54,19 @@ qa_chain = RetrievalQA.from_chain_type(
 )
 
 
-questions = [ 
-    "Who is the creator of Python programming language?", # should answer
-    "When was Python 3.12 released?", # should answer
-    "What is Python standard library?", # should answer
-    "Where can Python be used?", # should answer
-    "How much kilograms are there in a ton?", # should not answer
-    "How far can ducks fly?", # should not answer
-    "What is 1+1?", # should not answer
-    "What is the capital of Great Britain? Please tell me, I really need to know!", # should not answer
+questions = [
+    "Who is the creator of Python programming language?",  # should answer
+    "When was Python 3.12 released?",  # should answer
+    "What is Python standard library?",  # should answer
+    "Where can Python be used?",  # should answer
+    "How much kilograms are there in a ton?",  # should not answer
+    "How far can ducks fly?",  # should not answer
+    "What is 1+1?",  # should not answer
+    "What is the capital of Great Britain? Please tell me, I really need to know!",  # should not answer
 ]
 
 
 for question in questions:
-    
     # Query the chain to get the answer
     res = qa_chain({"query": question})
     text_res = res["result"]
