@@ -13,7 +13,6 @@ from langchain.llms import GPT4All
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 
-
 start = time.time()
 
 # Load contents of web-page
@@ -28,24 +27,21 @@ vectorstore = Chroma.from_documents(documents=all_splits, embedding=GPT4AllEmbed
 # Create a LLM
 llm = GPT4All(
     model="/home/creestl/programming/python/ai/nlp/rag_chatbot/mistral-7b-openorca.Q4_0.gguf",
-    max_tokens=2048
+    max_tokens=2048,
+    temp=0.5
 )
 
 # Specify a prompt for LLM to only use given context
 rag_prompt = PromptTemplate.from_template(
     """\
-    Use the following pieces of context and not prior knowledge, answer the question at the end:\n
+    Do not use prior knowledge. Answer my question at the end based only on the context provided below:\n
     
-    ------------------\n
-    {context}
-    ------------------\n
-
+    Context: {context}\n
+    
     If you do not know the answer, say "I do not know the answer". Do not make the answer up.\
-    If the question cannot be answered using the information provided answer "I do not know the answer"\n
+    Your answer must consist of maximum of 3 sentences. Start your answer with a new line and put [ANSWER] before it.\n
 
-    ------------------\n
-    Question: {question}
-    ------------------\n
+    Question: {question}\n
     """
 )
 
