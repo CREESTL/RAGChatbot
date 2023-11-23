@@ -1,6 +1,6 @@
 """
 
-Q&A RAG Using API for Hugging Face models and storing chat history
+Q&A RAG Using API for OpenAI models and storing chat history
 
 """
 
@@ -10,15 +10,15 @@ from langchain.embeddings import GPT4AllEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.vectorstores import Chroma
-from langchain.llms import HuggingFaceHub
+# TODO or from llms import OpenAI???
+from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.document_loaders import PyPDFLoader
 from dotenv import find_dotenv, load_dotenv
-import os
 
 
+# Load OpenAI API token 
 load_dotenv(find_dotenv())
-HF_TOKEN = os.environ["HF_TOKEN"]
 
 start = time.time()
 
@@ -32,18 +32,12 @@ all_splits = text_splitter.split_documents(data)
 # Embed words and store them in DB
 vectorstore = Chroma.from_documents(documents=all_splits, embedding=GPT4AllEmbeddings())
 
-# Create a LLM
-repo_id = "HuggingFaceH4/zephyr-7b-beta"
+llm = ChatOpenAI(
+    model_name="gpt-e.5-turbo", 
+    temperature=0.5, # default is 0.7
+    max_tokens=2048,
+    )
 
-# Optional repos
-# repo_id = "mistralai/Mistral-7B-v0.1"
-# repo_id = "tiiuae/falcon-7b-instruct"
-
-llm = HuggingFaceHub(
-    repo_id=repo_id,
-    huggingfacehub_api_token=HF_TOKEN,
-    model_kwargs={"temperature": 0.5, "max_length": 300},
-)
 
 # Specify a prompt for LLM to only use given context
 rag_prompt = PromptTemplate.from_template(
