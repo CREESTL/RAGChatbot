@@ -6,18 +6,20 @@ Q&A RAG Using API for OpenAI models and storing chat history
 
 import time
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import GPT4AllEmbeddings, CacheBackedEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.vectorstores import Chroma
+
 # TODO or from llms import OpenAI???
 from langchain.chat_models import ChatOpenAI
+from langchain.storage import LocalFileStore
 from langchain.prompts import PromptTemplate
 from langchain.document_loaders import PyPDFLoader
 from dotenv import find_dotenv, load_dotenv
 
 
-# Load OpenAI API token 
+# Load OpenAI API token
 load_dotenv(find_dotenv())
 
 start = time.time()
@@ -25,18 +27,26 @@ start = time.time()
 # Load contents of local file
 loader = PyPDFLoader("ritchie.pdf")
 data = loader.load()
-
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 all_splits = text_splitter.split_documents(data)
 
+# File to store cached embeddings
+cache_file = LocalFileStore("./cache/")
+embeddings = GPT4AllEmbeddings()
+cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+    underlying_embeddings=embeddings,
+    document_embedding_cache=cache_file,
+    namespace="some_namespace",
+)
+
 # Embed words and store them in DB
-vectorstore = Chroma.from_documents(documents=all_splits, embedding=GPT4AllEmbeddings())
+vectorstore = Chroma.from_documents(all_splits, cached_embedder)
 
 llm = ChatOpenAI(
-    model_name="gpt-e.5-turbo", 
-    temperature=0.5, # default is 0.7
+    model_name="gpt-e.5-turbo",
+    temperature=0.5,  # default is 0.7
     max_tokens=2048,
-    )
+)
 
 
 # Specify a prompt for LLM to only use given context

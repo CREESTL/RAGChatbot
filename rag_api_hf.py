@@ -7,7 +7,8 @@ Q&A RAG Using API for Hugging Face models
 import time
 from langchain.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import GPT4AllEmbeddings, CacheBackedEmbeddings
+from langchain.storage import LocalFileStore
 from langchain.vectorstores import Chroma
 from langchain.llms import HuggingFaceHub
 from langchain.chains import RetrievalQA
@@ -25,12 +26,21 @@ start = time.time()
 # Load contents of local file
 loader = PyPDFLoader("ritchie.pdf")
 data = loader.load()
-
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 all_splits = text_splitter.split_documents(data)
 
+
+# File to store cached embeddings
+cache_file = LocalFileStore("./cache/")
+embeddings = GPT4AllEmbeddings()
+cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+    underlying_embeddings=embeddings,
+    document_embedding_cache=cache_file,
+    namespace="some_namespace",
+)
+
 # Embed words and store them in DB
-vectorstore = Chroma.from_documents(documents=all_splits, embedding=GPT4AllEmbeddings())
+vectorstore = Chroma.from_documents(all_splits, cached_embedder)
 
 # Create a LLM
 repo_id = "HuggingFaceH4/zephyr-7b-beta"
